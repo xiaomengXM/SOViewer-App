@@ -52,12 +52,13 @@ public final class Dialogs {
             // Application Context 弹 Dialog 在 MIUI 等 ROM 上会抛 BadTokenException 而静默失败。
             Context c = App.uiCtx();
             if (c == null) c = App.ctx();
-            // 显式指定 DayNight 弹窗主题，保证深色模式下弹窗也是深色
-            b = new AlertDialog.Builder(c, R.style.Theme_SOViewer_Dialog);
+            // 不指定自定义 dialog 主题：交由 Activity 主题（Theme.SOViewer）决定，
+            // 指定外来主题会因缺少 windowMinWidth / windowBackground 导致布局塌缩、内容不可见。
+            b = new AlertDialog.Builder(c);
         }
 
         public Builder(Context themed) {
-            b = new AlertDialog.Builder(themed, R.style.Theme_SOViewer_Dialog);
+            b = new AlertDialog.Builder(themed);
         }
 
         public Builder setTitle(CharSequence t) {

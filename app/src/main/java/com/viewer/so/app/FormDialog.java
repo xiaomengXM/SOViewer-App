@@ -164,10 +164,18 @@ public final class FormDialog {
             root.addView(et, lp);
         }
 
-        // 长表单可滚动
+        // 长表单可滚动。
+        // 关键：AlertDialog 的自定义视图若无明确高度会塌缩成 0，
+        // 因此这里给 ScrollView 设上限高度与最小高度，保证内容可见。
         ScrollView sv = new ScrollView(ctx);
         sv.addView(root, new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        // 用窗口高度的 70% 作为内容上限，避免超高表单撑爆屏幕
+        int maxH = (int) (ctx.getResources().getDisplayMetrics().heightPixels * 0.7f);
+        sv.setMinimumHeight(dp(120));
+        sv.setLayoutParams(new ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, maxH));
         return sv;
     }
 

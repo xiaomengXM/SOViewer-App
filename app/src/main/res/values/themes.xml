@@ -15,7 +15,9 @@
         <item name="android:windowBackground">?android:attr/colorBackground</item>
     </style>
 
-    <!-- 打开方式中转页：透明、无动画，用户无感知 -->
+    <!--
+      打开方式中转页：透明、无动画，用户无感知
+    -->
     <style name="Theme.SOViewer.Transparent" parent="Theme.SOViewer">
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:windowIsTranslucent">true</item>
@@ -33,11 +35,10 @@
     </style>
 
     <!--
-      弹窗主题。
-      显式声明为 AppCompat 的 DayNight 弹窗，保证深色模式下弹窗也是深色，
-      同时避免 Application Context 弹窗被 ROM 拒绝。
+      注意：不要为 AlertDialog 指定自定义主题。
+      AlertDialog.Builder(ctx, themeResId) 的 themeResId 必须是 alertDialogTheme 类型，
+      传入外观不完整的主题（缺 windowMinWidthMajor / windowBackground 等）
+      会导致弹窗布局塌缩，内容完全不可见。
+      本项目的弹窗统一走 Activity 主题（Theme.SOViewer）自带的 alertDialogTheme。
     -->
-    <style name="Theme.SOViewer.Dialog" parent="Theme.AppCompat.DayNight.Dialog.Alert">
-        <item name="colorAccent">#1565C0</item>
-    </style>
 </resources>
