@@ -330,10 +330,13 @@ public final class PreviewEngine {
                     } catch (Throwable ignored) {}
                 }
 
-                String html = buildPreviewHtml(script, processedScriptCode, fileName, file,
+                // 统一会话 token：HTML 内的 /raw/{token}、/preview/{token} 与
+// 服务端会话表都必须使用同一个值，否则 /raw 会因查不到会话而 404
+                String token = UUID.randomUUID().toString();
+
+                String html = buildPreviewHtml(token, script, processedScriptCode, fileName, file,
                         scriptExt, pr.preloadUrls.toString(), scriptName, babelLocalUrl);
 
-                String token = UUID.randomUUID().toString();
                 PreviewSession session = new PreviewSession();
                 session.token = token;
                 session.html = html;
@@ -374,14 +377,14 @@ public final class PreviewEngine {
     // HTML 组装
     // ============================================================
 
-    public static String buildPreviewHtml(JSONObject script, String scriptCode, String fileName,
-                                          File file, String scriptExt, String preloadUrlsJson,
-                                          String scriptName, String babelLocalUrl) {
+    public static String buildPreviewHtml(String token, JSONObject script, String scriptCode,
+                                          String fileName, File file, String scriptExt,
+                                          String preloadUrlsJson, String scriptName,
+                                          String babelLocalUrl) {
         String safeFileName = JsonUtils.escapeJs(fileName);
         String safeExt = JsonUtils.escapeJs(scriptExt);
         String safeScriptCode = scriptCode.replace("</script>", "<\\/script>");
         String safeScriptName = JsonUtils.escapeJs(scriptName);
-        String token = UUID.randomUUID().toString();
         String pluginGlobalsScript = buildPluginGlobalsScript(script, token);
 
         String babelInjection = "";
