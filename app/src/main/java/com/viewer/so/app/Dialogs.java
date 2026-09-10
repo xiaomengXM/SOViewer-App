@@ -44,25 +44,30 @@ public final class Dialogs {
         private final AlertDialog.Builder b;
         private String posText, negText, neuText;
         private DialogInterface.OnClickListener posL, negL, neuL;
+        private CharSequence title, message;
+        private boolean cancelable = true;
 
         public Builder() {
             // 关键：必须用当前 Activity 的 Context。
             // Application Context 弹 Dialog 在 MIUI 等 ROM 上会抛 BadTokenException 而静默失败。
             Context c = App.uiCtx();
             if (c == null) c = App.ctx();
-            b = new AlertDialog.Builder(c);
+            // 显式指定 DayNight 弹窗主题，保证深色模式下弹窗也是深色
+            b = new AlertDialog.Builder(c, R.style.Theme_SOViewer_Dialog);
         }
 
         public Builder(Context themed) {
-            b = new AlertDialog.Builder(themed);
+            b = new AlertDialog.Builder(themed, R.style.Theme_SOViewer_Dialog);
         }
 
-        public Builder setTitle(CharSequence title) {
-            b.setTitle(title);
+        public Builder setTitle(CharSequence t) {
+            this.title = t;
+            b.setTitle(t);
             return this;
         }
 
         public Builder setMessage(CharSequence msg) {
+            this.message = msg;
             b.setMessage(msg);
             return this;
         }
@@ -73,6 +78,7 @@ public final class Dialogs {
         }
 
         public Builder setCancelable(boolean c) {
+            this.cancelable = c;
             b.setCancelable(c);
             return this;
         }

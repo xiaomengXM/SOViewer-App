@@ -1,5 +1,7 @@
 package com.viewer.so.app;
 
+import android.content.SharedPreferences;
+
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.File;
@@ -184,5 +186,123 @@ public final class Utils {
 
     public static boolean isEmpty(String s) {
         return s == null || s.trim().isEmpty();
+    }
+
+    // ---------- 设置页支持 ----------
+
+    /**
+     * 获取导出目录。
+     * 优先使用用户自定义目录（download_dir_custom），否则回退到应用专属 Download 子目录。
+     */
+    public static File getPreferredDownloadDirectory() {
+        SharedPreferences sp = App.prefs();
+        if (!sp.getBoolean("download_dir_use_public", true)) {
+            String custom = sp.getString("download_dir_custom", "");
+            if (!isEmpty(custom)) {
+                File f = new File(custom);
+                if (f.isAbsolute()) {
+                    f.mkdirs();
+                    return f;
+                }
+            }
+        }
+        File fallback = exportsDir();
+        fallback.mkdirs();
+        return fallback;
+    }
+
+    /** 导出目录的可读描述，用于设置页摘要 */
+    public static String getPreferredDownloadDirectoryDisplay() {
+        SharedPreferences sp = App.prefs();
+        if (!sp.getBoolean("download_dir_use_public", true)) {
+            String custom = sp.getString("download_dir_custom", "");
+            if (!isEmpty(custom) && new File(custom).isAbsolute()) {
+                return custom;
+            }
+        }
+        return exportsDir().getAbsolutePath();
+    }
+
+    /**
+     * 校验目录是否可写。
+     * @param createIfMissing 目录不存在时是否尝试创建
+     */
+    public static void validateWritableDirectory(File dir, boolean createIfMissing) throws IOException {
+        if (dir == null) throw new IOException("目录为空");
+        if (!dir.exists()) {
+            if (!createIfMissing || !dir.mkdirs()) {
+                throw new IOException("目录不存在且无法创建: " + dir.getAbsolutePath());
+            }
+        }
+        if (!dir.isDirectory()) {
+            throw new IOException("路径不是目录: " + dir.getAbsolutePath());
+        }
+        if (!dir.canWrite()) {
+            throw new IOException("目录不可写: " + dir.getAbsolutePath());
+        }
+    }
+
+    /** 在目录下生成不冲突的文件名，如 name.json → name(1).json */
+    public static String buildUniqueName(File dir, String fileName) {
+        if (dir == null || isEmpty(fileName)) return fileName;
+        File target = new File(dir, fileName);
+        if (!target.exists()) return fileName;
+
+        int dot = fileName.lastIndexOf('.');
+        String base = dot > 0 ? fileName.substring(0, dot) : fileName;
+        String ext = dot > 0 ? fileName.substring(dot) : "";
+        for (int i = 1; i < 10000; i++) {
+            String candidate = base + "(" + i + ")" + ext;
+            if (!new File(dir, candidate).exists()) return candidate;
+        }
+        return System.currentTimeMillis() + ext;
+    }
+
+    /** 判断包是否已安装（外部联动辅助应用检测） */
+    public static boolean isPackageInstalled(String pkg) {
+        try {
+            App.ctx().getPackageManager().getPackageInfo(pkg, 0);
+            return true;
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    /** 读取脚本 JSON 数组，容错 */
+    public static org.json.JSONArray readJsonArray(SharedPreferences sp, String key) {
+        return JsonUtils.parseArray(sp.getString(key, "[]"));
+    }
+
+    /** 解析有界整数，越界回落到默认值 */
+    public static int parseBoundedInt(String raw, int def, int min, int max) {
+        try {
+            int v = Integer.parseInt(raw.trim());
+            return Math.max(min, Math.min(max, v));
+        } catch (Throwable t) {
+            return def;
+        }
+    }
+
+    /** 解析有界浮点数，越界回落到默认值 */
+    public static double parseBoundedDouble(String raw, double def, double min, double max) {
+        try {
+            double v = Double.parseDouble(raw.trim());
+            return Math.max(min, Math.min(max, v));
+        } catch (Throwable t) {
+            return def;
+        }
+    }
+
+    /** 读取有界 int 偏好 */
+    public static int getIntPref(SharedPreferences sp, String key, int def, int min, int max) {
+        String raw = sp.getString(key, null);
+        if (raw == null) {
+            try {
+                return Math.max(min, Math.min(max, sp.getInt(key, def)));
+            } catch (Throwable t) {
+                return def;
+            }
+        }
+        return parseBoundedInt(raw, def, min, max);
     }
 }
