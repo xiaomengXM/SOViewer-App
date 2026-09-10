@@ -31,4 +31,13 @@
     <style name="Theme.SOViewer.Settings" parent="Theme.SOViewer">
         <item name="preferenceTheme">@style/PreferenceThemeOverlay</item>
     </style>
+
+    <!--
+      弹窗主题。
+      显式声明为 AppCompat 的 DayNight 弹窗，保证深色模式下弹窗也是深色，
+      同时避免 Application Context 弹窗被 ROM 拒绝。
+    -->
+    <style name="Theme.SOViewer.Dialog" parent="Theme.AppCompat.DayNight.Dialog.Alert">
+        <item name="colorAccent">#1565C0</item>
+    </style>
 </resources>
