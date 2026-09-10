@@ -8,12 +8,8 @@ buildscript {
     }
 }
 
-allprojects {
-    repositories {
-        google()
-        mavenCentral()
-    }
-}
+// 注意：依赖仓库统一由 settings.gradle 的 dependencyResolutionManagement 提供，
+// 此处不再声明 allprojects.repositories，否则会与 FAIL_ON_PROJECT_REPOS 冲突。
 
 task clean(type: Delete) {
     delete rootProject.buildDir
