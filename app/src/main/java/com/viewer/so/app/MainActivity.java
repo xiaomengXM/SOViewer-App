@@ -151,6 +151,7 @@ public class MainActivity extends AppCompatActivity {
 
                 // 拷入应用私有目录：规避 WebView 对 content:// 的读取限制
                 File dest = new File(Utils.tempReceivedDir(), Utils.sanitizeFileName(name));
+                Utils.ensureParent(dest);
                 try (InputStream is = getContentResolver().openInputStream(uri);
                      FileOutputStream os = new FileOutputStream(dest)) {
                     if (is == null) throw new IllegalStateException("无法打开输入流");

@@ -91,11 +91,20 @@ public final class Utils {
     }
 
     public static void writeFile(File dest, byte[] data) throws IOException {
-        File parent = dest.getParentFile();
-        if (parent != null && !parent.exists()) parent.mkdirs();
+        ensureParent(dest);
         try (OutputStream os = new FileOutputStream(dest)) {
             os.write(data);
             os.flush();
+        }
+    }
+
+    /** 确保目标文件的父目录存在（FileOutputStream 不会自动创建） */
+    public static void ensureParent(File dest) {
+        if (dest == null) return;
+        File parent = dest.getParentFile();
+        if (parent != null && !parent.exists()) {
+            //noinspection ResultOfMethodCallIgnored
+            parent.mkdirs();
         }
     }
 

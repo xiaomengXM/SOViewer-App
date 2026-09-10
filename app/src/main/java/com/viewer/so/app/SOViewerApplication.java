@@ -16,6 +16,11 @@ public class SOViewerApplication extends Application {
         App.init(this);
 
         try {
+            // 预创建关键目录，避免首次写入时因父目录缺失失败
+            Utils.tempReceivedDir().mkdirs();
+            Utils.webCacheDir().mkdirs();
+            Utils.exportsDir().mkdirs();
+
             // 首次启动或版本升级时写入内置预览脚本
             PreviewEngine.ensureDefaultScripts(App.prefs());
 
