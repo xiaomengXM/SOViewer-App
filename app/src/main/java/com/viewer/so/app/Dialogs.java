@@ -19,19 +19,24 @@ public final class Dialogs {
     private static final Handler MAIN = new Handler(Looper.getMainLooper());
 
     public static void toast(final String msg) {
-        MAIN.post(() -> {
-            try {
-                Toast.makeText(App.ctx(), msg == null ? "" : msg, Toast.LENGTH_SHORT).show();
-            } catch (Throwable ignored) {}
-        });
+        MAIN.post(() -> showToast(App.uiCtx(), msg, Toast.LENGTH_SHORT));
     }
 
     public static void toastLong(final String msg) {
-        MAIN.post(() -> {
+        MAIN.post(() -> showToast(App.uiCtx(), msg, Toast.LENGTH_LONG));
+    }
+
+    private static void showToast(Context c, String msg, int len) {
+        try {
+            Toast.makeText(c, msg == null ? "" : msg, len).show();
+        } catch (Throwable t) {
+            // 兜底：Activity Context 失效时改用 Application Context
             try {
-                Toast.makeText(App.ctx(), msg == null ? "" : msg, Toast.LENGTH_LONG).show();
-            } catch (Throwable ignored) {}
-        });
+                Toast.makeText(App.ctx(), msg == null ? "" : msg, len).show();
+            } catch (Throwable t2) {
+                android.util.Log.e("SOViewer", "toast failed", t2);
+            }
+        }
     }
 
     /** 链式对话框构建器，对齐 PluginDialog 的常用 API */
@@ -41,12 +46,15 @@ public final class Dialogs {
         private DialogInterface.OnClickListener posL, negL, neuL;
 
         public Builder() {
-            Context c = App.ctx();
-            b = new AlertDialog.Builder(c, android.R.style.Theme_DeviceDefault_Light_Dialog_Alert);
+            // 关键：必须用当前 Activity 的 Context。
+            // Application Context 弹 Dialog 在 MIUI 等 ROM 上会抛 BadTokenException 而静默失败。
+            Context c = App.uiCtx();
+            if (c == null) c = App.ctx();
+            b = new AlertDialog.Builder(c);
         }
 
         public Builder(Context themed) {
-            b = new AlertDialog.Builder(themed, android.R.style.Theme_DeviceDefault_Light_Dialog_Alert);
+            b = new AlertDialog.Builder(themed);
         }
 
         public Builder setTitle(CharSequence title) {
@@ -103,7 +111,17 @@ public final class Dialogs {
             MAIN.post(() -> {
                 try {
                     create().show();
-                } catch (Throwable ignored) {}
+                } catch (Throwable t) {
+                    android.util.Log.e("SOViewer", "dialog show failed", t);
+                    // 兜底：Activity 已销毁时用 Application Context 再试一次
+                    try {
+                        new AlertDialog.Builder(App.ctx())
+                                .setTitle("提示")
+                                .setMessage("当前界面已不可用，请重试")
+                                .setPositiveButton("好", null)
+                                .create().show();
+                    } catch (Throwable ignored) {}
+                }
             });
         }
     }

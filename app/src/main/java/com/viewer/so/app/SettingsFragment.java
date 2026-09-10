@@ -190,7 +190,6 @@ public class SettingsFragment extends PreferenceFragmentCompat
                 return true;
             });
         }
-
         Preference diag = findPreference("action_diagnostics");
         if (diag != null) {
             diag.setOnPreferenceClickListener(p -> {
