@@ -30,7 +30,7 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity {
 
     private RecentAdapter adapter;
-    private TextView emptyView;
+    private View emptyView;
     private final Handler main = new Handler(Looper.getMainLooper());
 
     private final ActivityResultLauncher<String[]> filePicker =
