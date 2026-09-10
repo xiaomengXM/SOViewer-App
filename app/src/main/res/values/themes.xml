@@ -6,4 +6,13 @@
         <item name="colorPrimaryContainer">#D6E3FF</item>
         <item name="android:statusBarColor">#1565C0</item>
     </style>
+
+    <!-- 打开方式中转页：透明、无动画，用户无感知 -->
+    <style name="Theme.SOViewer.Transparent" parent="Theme.SOViewer">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowAnimationStyle">@null</item>
+        <item name="android:backgroundDimEnabled">false</item>
+    </style>
 </resources>

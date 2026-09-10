@@ -40,12 +40,14 @@
             android:configChanges="orientation|screenSize|keyboardHidden"
             android:theme="@style/Theme.SOViewer" />
 
-        <!-- 打开方式入口：接收文件 -->
+        <!-- 打开方式入口：接收文件（透明中转页，非 NoDisplay） -->
         <activity
             android:name=".OpenWithActivity"
             android:exported="true"
             android:excludeFromRecents="true"
-            android:theme="@android:style/Theme.NoDisplay">
+            android:noHistory="true"
+            android:launchMode="singleTask"
+            android:theme="@style/Theme.SOViewer.Transparent">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />

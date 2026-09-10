@@ -165,29 +165,6 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    /** 供 OpenWithActivity 调用 */
-    public static void handleExternalFile(AppCompatActivity activity, Uri uri) {
-        App.io().submit(() -> {
-            try {
-                String name = FileImporter.queryDisplayName(activity, uri);
-                if (Utils.isEmpty(name)) name = "unnamed";
-
-                File dest = new File(Utils.tempReceivedDir(), Utils.sanitizeFileName(name));
-                try (InputStream is = activity.getContentResolver().openInputStream(uri);
-                     FileOutputStream os = new FileOutputStream(dest)) {
-                    if (is == null) throw new IllegalStateException("无法打开输入流");
-                    Utils.copyStream(is, os);
-                }
-                String fName = name;
-                File fDest = dest;
-                new Handler(Looper.getMainLooper()).post(() ->
-                        openPreviewActivity(activity, fName, fDest));
-            } catch (Throwable t) {
-                Dialogs.toast("读取失败: " + t.getMessage());
-            }
-        });
-    }
-
     // ============================================================
     // 预览启动
     // ============================================================
