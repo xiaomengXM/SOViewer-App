@@ -66,7 +66,8 @@
         <activity
             android:name=".SettingsActivity"
             android:exported="false"
-            android:label="设置" />
+            android:label="设置"
+            android:theme="@style/Theme.SOViewer.Settings" />
 
         <!-- 前台服务：维持本地 HTTP Server -->
         <service

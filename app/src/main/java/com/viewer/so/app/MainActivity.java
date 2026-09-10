@@ -45,16 +45,17 @@ public class MainActivity extends AppCompatActivity {
         App.init(getApplicationContext());
         setContentView(R.layout.activity_main);
 
-        // 使用协议首次确认
-        if (!Prefs.getBoolean(Consts.PREF_KEY_EULA_AGREED, false)) {
-            showEula();
-            return;
-        }
+        // 先无条件绑定 UI —— 避免因 EULA 分支 return 导致按钮无响应
         initUi();
+
+        // 使用协议首次确认（在 UI 就绪后再弹，保证 Dialog 能正常显示）
+        if (!Prefs.getBoolean(Consts.PREF_KEY_EULA_AGREED, false)) {
+            main.postDelayed(this::showEula, 300);
+        }
     }
 
     private void initUi() {
-        setContentView(R.layout.activity_main);
+        if (adapter != null) return; // 防止重复初始化
 
         emptyView = findViewById(R.id.empty_view);
         RecyclerView list = findViewById(R.id.recent_list);
@@ -239,7 +240,6 @@ public class MainActivity extends AppCompatActivity {
                 .setCancelable(false)
                 .setPositiveButton("同意并继续", (d, w) -> {
                     Prefs.putBoolean(Consts.PREF_KEY_EULA_AGREED, true);
-                    initUi();
                 })
                 .setNegativeButton("退出", (d, w) -> finish())
                 .show();

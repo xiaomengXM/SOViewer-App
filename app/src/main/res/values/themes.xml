@@ -1,10 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.SOViewer" parent="Theme.Material3.DayNight.NoActionBar">
+    <!--
+      主主题。
+      注意：所有 Activity 都继承 AppCompatActivity，因此必须使用 AppCompat 系主题。
+      之前用的 Theme.Material3.* 与 AppCompatActivity 不兼容，会导致控件点击无响应。
+    -->
+    <style name="Theme.SOViewer" parent="Theme.AppCompat.DayNight.NoActionBar">
         <item name="colorPrimary">#1565C0</item>
-        <item name="colorOnPrimary">#FFFFFF</item>
-        <item name="colorPrimaryContainer">#D6E3FF</item>
+        <item name="colorPrimaryDark">#0D47A1</item>
+        <item name="colorAccent">#1565C0</item>
+        <item name="colorControlNormal">#757575</item>
+        <item name="colorControlActivated">#1565C0</item>
         <item name="android:statusBarColor">#1565C0</item>
+        <item name="android:windowBackground">?android:attr/colorBackground</item>
     </style>
 
     <!-- 打开方式中转页：透明、无动画，用户无感知 -->
@@ -14,5 +22,13 @@
         <item name="android:windowNoTitle">true</item>
         <item name="android:windowAnimationStyle">@null</item>
         <item name="android:backgroundDimEnabled">false</item>
+    </style>
+
+    <!--
+      设置页主题。
+      PreferenceFragmentCompat 额外依赖 preferenceTheme 与 AppCompat 控件属性。
+    -->
+    <style name="Theme.SOViewer.Settings" parent="Theme.SOViewer">
+        <item name="preferenceTheme">@style/PreferenceThemeOverlay</item>
     </style>
 </resources>
