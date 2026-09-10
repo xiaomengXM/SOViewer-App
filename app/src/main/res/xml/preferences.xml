@@ -1,0 +1,276 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <!-- ========== 1. 基础预览 ========== -->
+    <PreferenceCategory app:title="基础预览">
+
+        <SwitchPreferenceCompat
+            app:key="browser_top_bar_enabled"
+            app:title="显示预览顶栏"
+            app:summary="关闭后全屏预览，通过返回键退出"
+            app:defaultValue="true" />
+
+        <SwitchPreferenceCompat
+            app:key="dark_theme"
+            app:title="暗色主题"
+            app:summary="预览页使用深色背景"
+            app:defaultValue="false" />
+
+        <SwitchPreferenceCompat
+            app:key="compat_mode"
+            app:title="兼容模式（Babel 转译）"
+            app:summary="为旧版 WebView 注入 Babel，支持现代 JS 语法"
+            app:defaultValue="false" />
+
+        <EditTextPreference
+            app:key="large_file_warning_mb"
+            app:title="大文件警告阈值（MB）"
+            app:summary="超过 %s MB 时提示"
+            app:defaultValue="50" />
+
+    </PreferenceCategory>
+
+    <!-- ========== 2. 脚本管理 ========== -->
+    <PreferenceCategory app:title="脚本管理">
+
+        <Preference
+            app:key="action_show_scripts"
+            app:title="预览脚本列表"
+            app:summary="查看当前已安装的脚本" />
+
+        <SwitchPreferenceCompat
+            app:key="script_trusted_mode"
+            app:title="可信模式"
+            app:summary="⚠️ 允许被标记为可信的脚本读取 API Key 与写入文件"
+            app:defaultValue="false" />
+
+        <SwitchPreferenceCompat
+            app:key="script_save_enabled"
+            app:title="允许脚本保存文件"
+            app:summary="仅在可信模式下生效"
+            app:defaultValue="true" />
+
+        <Preference
+            app:key="action_reset_scripts"
+            app:title="重置内置脚本"
+            app:summary="恢复所有内置脚本为默认版本" />
+
+    </PreferenceCategory>
+
+    <!-- ========== 3. 网络与缓存 ========== -->
+    <PreferenceCategory app:title="网络与缓存">
+
+        <EditTextPreference
+            app:key="cache_max_mb"
+            app:title="缓存上限（MB）"
+            app:summary="上限 %s MB"
+            app:defaultValue="100" />
+
+        <EditTextPreference
+            app:key="preload_max_mb"
+            app:title="预加载上限（MB）"
+            app:summary="预加载上限 %s MB"
+            app:defaultValue="64" />
+
+        <EditTextPreference
+            app:key="save_max_mb"
+            app:title="保存文件上限（MB）"
+            app:summary="单次保存上限 %s MB"
+            app:defaultValue="80" />
+
+        <EditTextPreference
+            app:key="proxy_response_max_mb"
+            app:title="代理响应上限（MB）"
+            app:summary="代理响应上限 %s MB"
+            app:defaultValue="32" />
+
+        <EditTextPreference
+            app:key="session_ttl_minutes"
+            app:title="预览会话有效期（分钟）"
+            app:summary="会话有效期 %s 分钟"
+            app:defaultValue="10" />
+
+        <SwitchPreferenceCompat
+            app:key="auto_cleanup_sessions"
+            app:title="自动清理过期会话"
+            app:defaultValue="true" />
+
+        <EditTextPreference
+            app:key="server_port_hint"
+            app:title="本地服务端口"
+            app:summary="留空则自动分配"
+            app:defaultValue="" />
+
+        <SwitchPreferenceCompat
+            app:key="script_proxy_enabled"
+            app:title="启用脚本网络代理"
+            app:summary="⚠️ 允许脚本通过本地服务访问公网"
+            app:defaultValue="false" />
+
+        <EditTextPreference
+            app:key="proxy_allowlist"
+            app:title="代理白名单"
+            app:summary="每行一个域名，留空表示不限制" />
+
+    </PreferenceCategory>
+
+    <!-- ========== 4. AI / Agent ========== -->
+    <PreferenceCategory app:title="AI 与 Agent">
+
+        <SwitchPreferenceCompat
+            app:key="script_api_enabled"
+            app:title="启用 AI 接口"
+            app:summary="允许脚本调用大模型接口"
+            app:defaultValue="false" />
+
+        <EditTextPreference
+            app:key="script_api_url"
+            app:title="接口地址"
+            app:summary="未设置" />
+
+        <EditTextPreference
+            app:key="script_api_model"
+            app:title="模型名称"
+            app:summary="未设置" />
+
+        <EditTextPreference
+            app:key="script_api_key"
+            app:title="API Key"
+            app:summary="⚠️ 仅在可信模式下注入脚本" />
+
+        <SwitchPreferenceCompat
+            app:key="mcp_agent_enabled"
+            app:title="启用 MCP Agent"
+            app:summary="开启后可使用 Agent 对话面板"
+            app:defaultValue="false" />
+
+        <EditTextPreference
+            app:key="mcp_servers_json"
+            app:title="MCP 服务器配置"
+            app:summary="JSON 数组格式" />
+
+        <EditTextPreference
+            app:key="mcp_sdk_base_url"
+            app:title="MCP SDK 地址"
+            app:summary="SDK：%s"
+            app:defaultValue="https://esm.sh/@modelcontextprotocol/sdk@1.29.0" />
+
+        <EditTextPreference
+            app:key="agent_system_prompt"
+            app:title="Agent 系统提示词"
+            app:summary="自定义 Agent 行为" />
+
+        <EditTextPreference
+            app:key="agent_max_rounds"
+            app:title="最大对话轮数"
+            app:summary="最多 %s 轮"
+            app:defaultValue="6" />
+
+        <EditTextPreference
+            app:key="agent_max_tokens"
+            app:title="单次最大 tokens"
+            app:summary="上限 %s tokens"
+            app:defaultValue="2048" />
+
+        <EditTextPreference
+            app:key="agent_temperature"
+            app:title="采样温度"
+            app:summary="0 ~ 2，越大越发散"
+            app:defaultValue="0.2" />
+
+        <EditTextPreference
+            app:key="agent_max_file_chars"
+            app:title="注入文件内容上限（字符）"
+            app:summary="注入上限 %s 字符"
+            app:defaultValue="12000" />
+
+        <EditTextPreference
+            app:key="agent_memory_max_items"
+            app:title="记忆条数上限"
+            app:summary="记忆上限 %s 条"
+            app:defaultValue="80" />
+
+        <SwitchPreferenceCompat
+            app:key="agent_planner_enabled"
+            app:title="启用规划器"
+            app:defaultValue="true" />
+
+        <SwitchPreferenceCompat
+            app:key="agent_file_context_enabled"
+            app:title="自动注入文件上下文"
+            app:defaultValue="true" />
+
+        <SwitchPreferenceCompat
+            app:key="agent_vision_enabled"
+            app:title="启用视觉能力"
+            app:defaultValue="true" />
+
+        <SwitchPreferenceCompat
+            app:key="agent_memory_enabled"
+            app:title="启用记忆"
+            app:defaultValue="true" />
+
+        <SwitchPreferenceCompat
+            app:key="agent_history_enabled"
+            app:title="启用历史记录"
+            app:defaultValue="true" />
+
+        <SwitchPreferenceCompat
+            app:key="agent_auto_memory_enabled"
+            app:title="自动记忆"
+            app:defaultValue="true" />
+
+    </PreferenceCategory>
+
+    <!-- ========== 5. 诊断与维护 ========== -->
+    <PreferenceCategory app:title="诊断与维护">
+
+        <Preference
+            app:key="action_diagnostics"
+            app:title="诊断信息"
+            app:summary="查看服务状态、缓存占用、脚本版本" />
+
+        <Preference
+            app:key="action_clear_cache"
+            app:title="清理资源缓存"
+            app:summary="当前占用" />
+
+        <Preference
+            app:key="action_clear_sessions"
+            app:title="清理预览会话"
+            app:summary="释放当前所有活跃会话" />
+
+        <Preference
+            app:key="action_clear_recent"
+            app:title="清空最近文件"
+            app:summary="删除主页的历史记录" />
+
+        <SwitchPreferenceCompat
+            app:key="debug_console"
+            app:title="调试控制台"
+            app:summary="在 Logcat 输出预览页 JS 日志"
+            app:defaultValue="false" />
+
+    </PreferenceCategory>
+
+    <!-- ========== 6. 关于 ========== -->
+    <PreferenceCategory app:title="关于">
+
+        <Preference
+            app:key="about_github"
+            app:title="项目主页"
+            app:summary="github.com/bilieebiliee1-design/SOPreviewer" />
+
+        <Preference
+            app:key="about_license"
+            app:title="开源协议"
+            app:summary="AGPL-3.0" />
+
+        <Preference
+            app:key="action_eula"
+            app:title="使用协议"
+            app:summary="点击可重置协议确认状态" />
+
+    </PreferenceCategory>
+
+</PreferenceScreen>

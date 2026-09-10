@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>文件预览</title>
+    <style>
+        body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f5f5f5; color: #333; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        #preview-container { flex: 1; padding: 0; overflow: auto; box-sizing: border-box; background: #fff; position: relative; width: 100%; height: 100%; margin: 0; }
+        .error-box { 
+            background-color: #ffebee; 
+            color: #c62828; 
+            padding: 16px; 
+            border-radius: 4px; 
+            border: 1px solid #ef9a9a; 
+            margin: 16px;
+            font-size: 14px;
+            line-height: 1.5;
+            word-break: break-all;
+        }
+        .error-title { font-weight: bold; margin-bottom: 8px; font-size: 16px; }
+        
+        .code-preview {
+            background-color: #2b2b2b;
+            color: #f8f8f2;
+            border-radius: 4px;
+            padding: 8px;
+            margin: 8px 0;
+            font-family: monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            white-space: pre;
+            border: 1px solid #444;
+        }
+        .code-line {
+            display: flex;
+            min-height: 1.2em;
+        }
+        .line-number {
+            color: #666;
+            margin-right: 12px;
+            text-align: right;
+            min-width: 30px;
+            user-select: none;
+        }
+        .line-content {
+            flex: 1;
+        }
+        .error-line {
+            background-color: #4a1818;
+            font-weight: bold;
+        }
+        .error-marker {
+            color: #ff5555;
+            font-weight: bold;
+        }
+        
+        code { background-color: #f0f0f0; padding: 2px 4px; border-radius: 2px; font-family: monospace; }
+        /* Loading spinner */
+        .loading { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; font-size: 16px; color: #666; }
+        .progress-bar-container { width: 80%; max-width: 400px; height: 10px; background: #eee; border-radius: 5px; overflow: hidden; margin-top: 15px; display: none; }
+        .progress-bar { width: 0%; height: 100%; background: #0b6bff; transition: width 0.1s; }
+        .progress-text { margin-top: 8px; font-size: 13px; color: #888; display: none; }
+        .progress-hint { margin-top: 8px; width: 86%; max-width: 560px; font-size: 12px; line-height: 1.5; color: #666; text-align: center; display: none; }
+        .progress-detail { margin-top: 8px; width: 88%; max-width: 620px; max-height: 160px; overflow-y: auto; background: #fafafa; border: 1px solid #e5e5e5; border-radius: 6px; padding: 8px; font-size: 12px; color: #444; display: none; }
+        .progress-failures { margin-top: 8px; width: 88%; max-width: 620px; max-height: 170px; overflow-y: auto; background: #fff5f5; border: 1px solid #ffc9c9; border-radius: 6px; padding: 8px; font-size: 12px; color: #8a1f1f; display: none; }
+        
+        /* Console Panel */
+        #console-panel {
+            height: 200px;
+            background-color: #2b2b2b;
+            color: #f8f8f2;
+            font-family: monospace;
+            font-size: 12px;
+            overflow: auto;
+            border-top: 1px solid #444;
+            display: none; /* Hidden by default */
+            padding: 8px;
+            box-sizing: border-box;
+            z-index: 999;
+        }
+        #console-panel.visible { display: block; }
+        .log-entry { margin-bottom: 4px; border-bottom: 1px solid #3e3e3e; padding-bottom: 2px; white-space: pre-wrap; word-wrap: break-word; }
+        .log-info { color: #fff; }
+        .log-warn { color: #f1c40f; }
+        .log-error { color: #e74c3c; }
+        .log-debug { color: #3498db; }
+        
+        #console-toggle {
+            position: fixed;
+            bottom: 16px;
+            right: 16px;
+            background-color: #333;
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            z-index: 1000;
+            display: none; /* Hidden by default */
+            align-items: center;
+            justify-content: center;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+        #console-toggle:hover { opacity: 1; }
+        
+        .toast {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            z-index: 2000;
+            display: none;
+        }
+        body.theme-dark { background-color: #0f1115; color: #dbe2ea; }
+        body.theme-dark #preview-container { background: #11151b; color: #dbe2ea; }
+        body.theme-dark .loading { color: #b8c0cc; }
+        body.theme-dark code { background-color: #202631; color: #e6edf3; }
+        body.theme-dark .error-box { background-color: #2a1418; color: #ffb4b4; border-color: #663238; }
+        body.theme-dark .error-title { color: #ffd1d1; }
+        body.theme-dark .progress-bar-container { background: #252c36; }
+        body.theme-dark .progress-text,
+        body.theme-dark .progress-hint { color: #aab4c0; }
+        body.theme-dark .progress-detail { background: #151b23; border-color: #303946; color: #dbe2ea; }
+        body.theme-dark .progress-failures { background: #25161a; border-color: #6b333a; color: #ffb4b4; }
+        body.theme-dark #console-panel { background-color: #151b23; border-top-color: #303946; }
+    </style>
+</head>
+<body>
+    <div id="preview-container">
+        <div class="loading">
+            <span id="loading-msg">正在初始化...</span>
+            <div class="progress-bar-container" id="progress-container">
+                <div class="progress-bar" id="progress-bar"></div>
+            </div>
+            <div class="progress-text" id="progress-text"></div>
+            <div class="progress-hint" id="progress-hint"></div>
+            <div class="progress-detail" id="progress-detail"></div>
+            <div class="progress-failures" id="progress-failures"></div>
+        </div>
+    </div>
+    
+    <div id="console-panel"></div>
+    <button id="console-toggle" title="Toggle Console">🛠️</button>
+    <div id="toast" class="toast"></div>
+
+    <!-- BABEL_INJECTION_POINT -->
+    <script>
+        /* PLUGIN_GLOBALS_INJECTION */
+    </script>
+
+    <!-- Core Logic: Error Handling & Console Override -->
+    <script>
+        // Injected by Java: offset of user script lines
+        const __userScriptOffset = {{SCRIPT_OFFSET}};
+        window.__hasRuntimeError = false;
+        (function applyUiConfig() {
+            const cfg = window.SOViewerUIConfig || {};
+            if (cfg.darkTheme) document.body.classList.add('theme-dark');
+        })();
+
+        // 简单的错误翻译字典
+        const ERROR_TRANSLATIONS = [
+            { regex: /^Uncaught ReferenceError: (.*) is not defined/, template: "引用错误: 变量 '$1' 未定义" },
+            { regex: /^Uncaught SyntaxError: Unexpected token (.*)/, template: "语法错误: 意外的符号 '$1'" },
+            { regex: /^Uncaught SyntaxError: Invalid or unexpected token/, template: "语法错误: 无效或意外的符号" },
+            { regex: /^Uncaught TypeError: (.*) is not a function/, template: "类型错误: '$1' 不是一个函数" },
+            { regex: /^Uncaught TypeError: Cannot read properties of undefined \(reading '(.*)'\)/, template: "类型错误: 无法读取 undefined 的属性 '$1'" },
+            { regex: /^Uncaught TypeError: Cannot read properties of null \(reading '(.*)'\)/, template: "类型错误: 无法读取 null 的属性 '$1'" },
+            { regex: /^Uncaught TypeError: Assignment to constant variable/, template: "类型错误: 尝试给常量赋值" },
+            { regex: /^Uncaught RangeError: Maximum call stack size exceeded/, template: "范围错误: 栈溢出 (可能是无限递归)" }
+        ];
+
+        function translateError(message) {
+            for (const item of ERROR_TRANSLATIONS) {
+                const match = message.match(item.regex);
+                if (match) {
+                    let translated = item.template;
+                    for (let i = 1; i < match.length; i++) {
+                        translated = translated.replace('$' + i, match[i]);
+                    }
+                    return translated;
+                }
+            }
+            return message; // No translation found
+        }
+
+        (function() {
+            const consolePanel = document.getElementById('console-panel');
+            const toggleBtn = document.getElementById('console-toggle');
+            const uiConfig = window.SOViewerUIConfig || {};
+            let isConsoleVisible = !!uiConfig.debugConsole;
+            if (isConsoleVisible) {
+                consolePanel.className = 'visible';
+                toggleBtn.style.display = 'flex';
+            }
+
+            toggleBtn.addEventListener('click', () => {
+                isConsoleVisible = !isConsoleVisible;
+                consolePanel.className = isConsoleVisible ? 'visible' : '';
+            });
+
+            function appendLog(type, args) {
+                const entry = document.createElement('div');
+                entry.className = 'log-entry log-' + type;
+                
+                const msg = args.map(arg => {
+                    if (typeof arg === 'object') {
+                        try { return JSON.stringify(arg, null, 2); } catch(e) { return String(arg); }
+                    }
+                    return String(arg);
+                }).join(' ');
+                
+                entry.textContent = `[${new Date().toLocaleTimeString()}] [${type.toUpperCase()}] ${msg}`;
+                consolePanel.appendChild(entry);
+                consolePanel.scrollTop = consolePanel.scrollHeight;
+            }
+
+            const originalConsole = {
+                log: console.log,
+                warn: console.warn,
+                error: console.error,
+                info: console.info,
+                debug: console.debug
+            };
+
+            console.log = function(...args) { originalConsole.log(...args); appendLog('info', args); };
+            console.warn = function(...args) { originalConsole.warn(...args); appendLog('warn', args); };
+            console.error = function(...args) { originalConsole.error(...args); appendLog('error', args); };
+            console.info = function(...args) { originalConsole.info(...args); appendLog('info', args); };
+            console.debug = function(...args) { originalConsole.debug(...args); appendLog('debug', args); };
+
+            window.onerror = function(message, source, lineno, colno, error) {
+                window.__hasRuntimeError = true;
+                document.getElementById('console-toggle').style.display = 'flex';
+
+                let translatedMsg = translateError(message);
+                let errorDetails = {
+                    message: translatedMsg,
+                    originalMessage: message,
+                    line: lineno,
+                    col: colno,
+                    context: null
+                };
+
+                let relativeLine = lineno;
+                if (__userScriptOffset > 0 && lineno > __userScriptOffset) {
+                    relativeLine = lineno - __userScriptOffset;
+                }
+                
+                errorDetails.relativeLine = relativeLine;
+                errorDetails.message += ` (第 ${relativeLine} 行)`;
+
+                // Get Code Context
+                const scriptEl = document.getElementById('user-script-code') || document.getElementById('user-script');
+                if (scriptEl) {
+                    const lines = scriptEl.textContent.split('\n');
+                    const targetIndex = relativeLine - 1; // 0-based index
+                    
+                    // Extract surrounding lines (2 before, 2 after)
+                    const start = Math.max(0, targetIndex - 2);
+                    const end = Math.min(lines.length - 1, targetIndex + 2);
+                    
+                    let contextLines = [];
+                    for (let i = start; i <= end; i++) {
+                        contextLines.push({
+                            num: i + 1,
+                            content: lines[i],
+                            isError: i === targetIndex
+                        });
+                    }
+                    errorDetails.context = {
+                        lines: contextLines,
+                        hasMoreBefore: start > 0,
+                        hasMoreAfter: end < lines.length - 1
+                    };
+                }
+
+                console.error("Uncaught Error:", message, "\nLocation:", source, ":", lineno, ":", colno);
+                showError("脚本运行时错误", errorDetails);
+                return true;
+            };
+            
+            window.addEventListener('unhandledrejection', function(event) {
+                window.__hasRuntimeError = true;
+                document.getElementById('console-toggle').style.display = 'flex';
+                
+                let reason = event.reason;
+                let msg = reason;
+                if (reason instanceof Error) {
+                    msg = reason.message;
+                }
+                msg = translateError(String(msg));
+                
+                console.error("Unhandled Rejection:", event.reason);
+                showError("未捕获的 Promise 异常", { message: msg, originalMessage: String(event.reason) });
+            });
+        })();
+
+        function createCodePreview(context, col) {
+            const container = document.createElement('div');
+            container.className = 'code-preview';
+
+            if (context.hasMoreBefore) {
+                const dotLine = document.createElement('div');
+                dotLine.className = 'code-line';
+                dotLine.innerHTML = '<span class="line-number">...</span><span class="line-content"></span>';
+                container.appendChild(dotLine);
+            }
+
+            context.lines.forEach(line => {
+                const lineDiv = document.createElement('div');
+                lineDiv.className = 'code-line' + (line.isError ? ' error-line' : '');
+                
+                const numSpan = document.createElement('span');
+                numSpan.className = 'line-number';
+                numSpan.textContent = line.num;
+                
+                const contentSpan = document.createElement('span');
+                contentSpan.className = 'line-content';
+                contentSpan.textContent = line.content;
+                
+                lineDiv.appendChild(numSpan);
+                lineDiv.appendChild(contentSpan);
+                container.appendChild(lineDiv);
+
+                // Add marker line if this is the error line and we have column info
+                if (line.isError && col > 0) {
+                    const markerDiv = document.createElement('div');
+                    markerDiv.className = 'code-line';
+                    
+                    const emptyNum = document.createElement('span');
+                    emptyNum.className = 'line-number';
+                    
+                    const markerContent = document.createElement('span');
+                    markerContent.className = 'line-content error-marker';
+                    // col is 1-based usually. repeat space col-1 times.
+                    // Note: Tabs might mess this up, but basic spacing works.
+                    // Assuming monospace font.
+                    let spaces = "";
+                    for(let i=0; i<col-1; i++) spaces += " ";
+                    markerContent.textContent = spaces + "^";
+                    
+                    markerDiv.appendChild(emptyNum);
+                    markerDiv.appendChild(markerContent);
+                    container.appendChild(markerDiv);
+                }
+            });
+
+            if (context.hasMoreAfter) {
+                const dotLine = document.createElement('div');
+                dotLine.className = 'code-line';
+                dotLine.innerHTML = '<span class="line-number">...</span><span class="line-content"></span>';
+                container.appendChild(dotLine);
+            }
+
+            return container;
+        }
+
+        function showError(title, details) {
+            const container = document.getElementById('preview-container');
+            
+            let errorBox = container.querySelector('.error-box');
+            if (!errorBox) {
+                container.innerHTML = ''; 
+                errorBox = document.createElement('div');
+                errorBox.className = 'error-box';
+                container.appendChild(errorBox);
+            } else {
+                errorBox.innerHTML += '<hr style="border: 0; border-top: 1px solid #ef9a9a; margin: 10px 0;">';
+            }
+            
+            const titleEl = document.createElement('div');
+            titleEl.className = 'error-title';
+            titleEl.textContent = title;
+            
+            const msgEl = document.createElement('div');
+            msgEl.style.whiteSpace = 'pre-wrap';
+            msgEl.style.fontWeight = 'bold';
+            msgEl.textContent = details.message || String(details);
+            
+            const entry = document.createElement('div');
+            entry.appendChild(titleEl);
+            entry.appendChild(msgEl);
+
+            // Append Code Context if available
+            if (details.context) {
+                const codePreview = createCodePreview(details.context, details.col);
+                entry.appendChild(codePreview);
+            }
+            
+            // Original English message (small)
+            if (details.originalMessage && details.originalMessage !== details.message) {
+                 const originalEl = document.createElement('div');
+                 originalEl.style.fontSize = '12px';
+                 originalEl.style.color = '#888';
+                 originalEl.style.marginTop = '4px';
+                 originalEl.textContent = details.originalMessage;
+                 entry.appendChild(originalEl);
+            }
+            
+            const helpEl = document.createElement('div');
+            helpEl.style.marginTop = '12px';
+            helpEl.innerHTML = '<strong>建议操作：</strong><br>1. 检查上方报错代码逻辑（红色高亮行）。<br>2. 点击右下角 🛠️ 图标查看详细控制台日志。<br>3. 确保 render 函数返回的是 DOM 元素。';
+            entry.appendChild(helpEl);
+            
+            errorBox.appendChild(entry);
+        }
+    </script>
+
+    <!-- User Script Injection -->
+    <script type="text/plain" id="user-script-code">
+        /* USER_SCRIPT_INJECTION_POINT */
+    </script>
+    <script id="user-script-placeholder"></script>
+
+    <!-- Main Init Logic -->
+    <script>
+        const fileName = "{{FILENAME}}";
+        const fileExt = "{{EXTENSION}}";
+        const preloadUrls = /* PRELOAD_URLS_JSON */;
+        const scriptName = "/* SCRIPT_NAME */";
+        const sessionInfo = window.SOViewerSession || {};
+        const sessionToken = typeof sessionInfo.token === 'string' ? sessionInfo.token : '';
+        const saveEndpoint = sessionInfo.saveEndpoint || ('/api/save_file?token=' + encodeURIComponent(sessionToken));
+        const preloadEndpoint = sessionInfo.preloadEndpoint || ('/api/preload?token=' + encodeURIComponent(sessionToken));
+
+        function toBase64(bytes) {
+            let binary = '';
+            const chunkSize = 0x8000;
+            for (let i = 0; i < bytes.length; i += chunkSize) {
+                const chunk = bytes.subarray(i, i + chunkSize);
+                binary += String.fromCharCode.apply(null, chunk);
+            }
+            return btoa(binary);
+        }
+
+        async function toUint8Array(data) {
+            if (data instanceof Uint8Array) return data;
+            if (data instanceof ArrayBuffer) return new Uint8Array(data);
+            if (data instanceof Blob) return new Uint8Array(await data.arrayBuffer());
+            if (typeof data === 'string') return new TextEncoder().encode(data);
+            throw new Error('不支持的数据类型，请传入 String、Uint8Array、ArrayBuffer 或 Blob');
+        }
+
+        function normalizePreloadKey(item) {
+            if (!item) return '';
+            const local = typeof item.local === 'string' ? item.local.trim() : '';
+            if (local) return local.toLowerCase();
+            const name = typeof item.name === 'string' ? item.name.trim() : '';
+            if (name) return name.toLowerCase();
+            const original = typeof item.original === 'string' ? item.original.trim() : '';
+            return original.toLowerCase();
+        }
+
+        function normalizeCandidates(item) {
+            const raw = Array.isArray(item && item.candidates) && item.candidates.length > 0 ? item.candidates : [item && item.original];
+            const unique = [];
+            const seen = new Set();
+            for (const value of raw) {
+                const url = typeof value === 'string' ? value.trim() : '';
+                if (!url || (!url.startsWith('http://') && !url.startsWith('https://'))) continue;
+                if (seen.has(url)) continue;
+                seen.add(url);
+                unique.push(url);
+            }
+            return unique;
+        }
+
+        function getUrlFileName(url) {
+            if (!url || typeof url !== 'string') return '';
+            const clean = url.split('#')[0].split('?')[0];
+            const idx = clean.lastIndexOf('/');
+            return idx >= 0 ? clean.substring(idx + 1).toLowerCase() : clean.toLowerCase();
+        }
+
+        function getMinCanonicalName(fileName) {
+            if (!fileName) return '';
+            if (fileName.endsWith('.min.js')) return fileName.slice(0, -'.min.js'.length) + '.js';
+            if (fileName.endsWith('.min.css')) return fileName.slice(0, -'.min.css'.length) + '.css';
+            return fileName;
+        }
+
+        function detectMinifiedMerge(candidates) {
+            const map = new Map();
+            for (const candidate of candidates) {
+                const fileName = getUrlFileName(candidate);
+                if (!fileName) continue;
+                const key = getMinCanonicalName(fileName);
+                if (!map.has(key)) map.set(key, { hasMin: false, hasNormal: false });
+                const item = map.get(key);
+                if (fileName.endsWith('.min.js') || fileName.endsWith('.min.css')) item.hasMin = true;
+                if ((fileName.endsWith('.js') || fileName.endsWith('.css')) && !fileName.endsWith('.min.js') && !fileName.endsWith('.min.css')) item.hasNormal = true;
+            }
+            let mergedCount = 0;
+            for (const v of map.values()) {
+                if (v.hasMin && v.hasNormal) mergedCount++;
+            }
+            return mergedCount;
+        }
+
+        async function parseSaveFileResponse(response) {
+            const text = await response.text();
+            let payload = null;
+            try {
+                payload = text ? JSON.parse(text) : null;
+            } catch (e) {
+                payload = null;
+            }
+            if (!response.ok) {
+                const serverMessage = payload && payload.message ? payload.message : (text || `${response.status} ${response.statusText}`);
+                const code = payload && typeof payload.code === 'number' ? payload.code : response.status;
+                throw new Error(`保存失败(code=${code}): ${serverMessage}`);
+            }
+            if (!payload || payload.ok !== true) {
+                throw new Error('保存失败: 返回结果异常');
+            }
+            if (typeof payload.code !== 'number') payload.code = 0;
+            if (typeof payload.message !== 'string') payload.message = '保存成功';
+            return payload;
+        }
+
+        async function saveFileToLocal(fileNameToSave, data, options) {
+            if (!fileNameToSave || typeof fileNameToSave !== 'string') {
+                throw new Error('fileName 不能为空');
+            }
+            const bytes = await toUint8Array(data);
+            const limits = window.SOViewerLimits || {};
+            const saveMaxBytes = Number(limits.saveMaxBytes || 0);
+            if (saveMaxBytes > 0 && bytes.length > saveMaxBytes) {
+                throw new Error('文件超过保存上限: ' + Math.ceil(bytes.length / 1048576) + 'MB / ' + Math.floor(saveMaxBytes / 1048576) + 'MB');
+            }
+            const opt = options && typeof options === 'object' ? options : {};
+            const dir = typeof opt.dir === 'string' ? opt.dir.trim() : '';
+            const subdir = typeof opt.subdir === 'string' ? opt.subdir.trim() : '';
+            const overwrite = !!opt.overwrite;
+            const body = 'script=' + encodeURIComponent(scriptName)
+                + '&file=' + encodeURIComponent(fileNameToSave)
+                + '&data=' + encodeURIComponent(toBase64(bytes))
+                + '&dir=' + encodeURIComponent(dir)
+                + '&subdir=' + encodeURIComponent(subdir)
+                + '&overwrite=' + encodeURIComponent(overwrite ? '1' : '0');
+            const response = await fetch(saveEndpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+                },
+                body
+            });
+            return await parseSaveFileResponse(response);
+        }
+
+        async function saveFromUrlToLocal(url, customName, options) {
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error('下载远程文件失败: ' + response.status + ' ' + response.statusText);
+            }
+            const buffer = await response.arrayBuffer();
+            let finalName = customName;
+            if (!finalName) {
+                const lastSlash = url.lastIndexOf('/');
+                finalName = lastSlash >= 0 ? url.substring(lastSlash + 1).split('?')[0] : 'download.bin';
+                if (!finalName) finalName = 'download.bin';
+            }
+            return await saveFileToLocal(finalName, new Uint8Array(buffer), options);
+        }
+
+        window.SOViewerDownloader = {
+            saveFile: saveFileToLocal,
+            saveText: async (fileNameToSave, text, options) => await saveFileToLocal(fileNameToSave, String(text), options),
+            saveJson: async (fileNameToSave, obj, options) => await saveFileToLocal(fileNameToSave, JSON.stringify(obj, null, 2), options),
+            saveFromUrl: saveFromUrlToLocal
+        };
+
+        function parseProbeResultsHeader(headerValue) {
+            if (!headerValue || headerValue === 'none') return [];
+            const rows = headerValue.split(';');
+            const result = [];
+            for (const row of rows) {
+                const parts = row.split('|');
+                if (parts.length < 4) continue;
+                result.push({
+                    index: parts[0],
+                    url: decodeURIComponent(parts[1] || ''),
+                    status: parts[2] || 'fail',
+                    latency: parts[3] || '-1'
+                });
+            }
+            return result;
+        }
+
+        function pushDetailLine(detailEl, text) {
+            const line = document.createElement('div');
+            line.textContent = text;
+            detailEl.appendChild(line);
+            while (detailEl.childNodes.length > 120) {
+                detailEl.removeChild(detailEl.firstChild);
+            }
+            detailEl.scrollTop = detailEl.scrollHeight;
+        }
+
+        async function preloadResources() {
+            if (!preloadUrls || preloadUrls.length === 0) return true;
+            
+            const msgEl = document.getElementById('loading-msg');
+            const pContainer = document.getElementById('progress-container');
+            const pBar = document.getElementById('progress-bar');
+            const pText = document.getElementById('progress-text');
+            const pHint = document.getElementById('progress-hint');
+            const pDetail = document.getElementById('progress-detail');
+            const pFailures = document.getElementById('progress-failures');
+            
+            pContainer.style.display = 'block';
+            pText.style.display = 'block';
+            pHint.style.display = 'block';
+            pDetail.style.display = 'block';
+            pFailures.style.display = 'none';
+            pDetail.innerHTML = '';
+            pFailures.innerHTML = '';
+            const uniqueMap = new Map();
+            for (const item of preloadUrls) {
+                const key = normalizePreloadKey(item);
+                if (!key) continue;
+                if (!uniqueMap.has(key)) {
+                    uniqueMap.set(key, item);
+                }
+            }
+            const uniqueTasks = Array.from(uniqueMap.values());
+            const totalCount = uniqueTasks.length;
+            let backupGroupCount = 0;
+            let minMergeCount = 0;
+            for (const task of uniqueTasks) {
+                const candidates = normalizeCandidates(task);
+                if (candidates.length > 1) backupGroupCount++;
+                const merged = task && task.mergedMinified === true ? 1 : detectMinifiedMerge(candidates);
+                if (merged > 0) minMergeCount++;
+            }
+            if (backupGroupCount > 0 && minMergeCount > 0) {
+                pHint.textContent = `检测到 ${totalCount} 个真实资源，其中 ${backupGroupCount} 个资源含备用链接，${minMergeCount} 个资源触发 .min 与非 .min 归并。已优先缓存 .min，完成后可离线使用。`;
+            } else if (backupGroupCount > 0) {
+                pHint.textContent = `检测到 ${totalCount} 个真实资源，其中 ${backupGroupCount} 个资源有备用链接。正在测速择优缓存，完成后可离线使用。`;
+            } else {
+                pHint.textContent = `检测到 ${totalCount} 个真实资源。正在缓存，完成后可离线使用。`;
+            }
+
+            let pendingTasks = uniqueTasks;
+            let attempt = 1;
+            while (pendingTasks.length > 0) {
+                const failed = [];
+                for (let i = 0; i < pendingTasks.length; i++) {
+                    const item = pendingTasks[i];
+                    const displayName = item && item.name ? item.name : 'unknown_resource';
+                    msgEl.textContent = `正在缓存外部资源（第 ${attempt} 轮，${i + 1}/${pendingTasks.length}）...`;
+                    pText.textContent = displayName;
+                    pBar.style.width = '0%';
+                    const candidates = normalizeCandidates(item);
+                    if (candidates.length === 0) {
+                        const reason = "未发现可用链接";
+                        failed.push({ item, name: displayName, reason });
+                        pushDetailLine(pDetail, `❌ ${displayName} 失败: ${reason}`);
+                        continue;
+                    }
+                    if (candidates.length > 1) {
+                        pushDetailLine(pDetail, `🔍 ${displayName} 检测到 ${candidates.length} 个同名/备用链接，开始测速择优`);
+                    }
+                    const mergedMinified = item && item.mergedMinified === true ? true : detectMinifiedMerge(candidates) > 0;
+                    if (mergedMinified) {
+                        pushDetailLine(pDetail, `⚙️ ${displayName} 触发 .min 与非 .min 归并，优先缓存 .min`);
+                    }
+                    try {
+                        const sep = preloadEndpoint.indexOf('?') >= 0 ? '&' : '?';
+                        const url = preloadEndpoint + sep + 'urls=' + encodeURIComponent(JSON.stringify(candidates))
+                            + '&name=' + encodeURIComponent(displayName)
+                            + '&script=' + encodeURIComponent(scriptName);
+                        const response = await fetch(url);
+                        const probeHeader = response.headers.get('x-preload-probe-results');
+                        const probeRows = parseProbeResultsHeader(probeHeader);
+                        for (const row of probeRows) {
+                            const latencyText = row.latency && row.latency !== '-1' ? `${row.latency}ms` : '超时/失败';
+                            pushDetailLine(pDetail, `📡 ${displayName} 候选 ${row.index}: ${row.status === 'ok' ? '可达' : '不可达'}，延迟 ${latencyText}`);
+                        }
+                        if (!response.ok) {
+                            const failReasonHeader = response.headers.get('x-preload-fail-reason');
+                            const failBody = await response.text().catch(() => '');
+                            const reason = failReasonHeader || failBody || (`HTTP ${response.status}`);
+                            failed.push({ item, name: displayName, reason });
+                            pushDetailLine(pDetail, `❌ ${displayName} 缓存失败: ${reason}`);
+                            continue;
+                        }
+                        const selectedUrl = response.headers.get('x-preload-selected-url');
+                        const selectedLatency = response.headers.get('x-preload-selected-latency');
+                        const cacheStatus = response.headers.get('x-preload-cache-status');
+                        const candidateCountHeader = response.headers.get('x-preload-candidate-count');
+                        const candidateCount = candidateCountHeader ? parseInt(candidateCountHeader, 10) : candidates.length;
+                        if (cacheStatus === 'HIT') {
+                            pText.textContent = `${displayName}（命中缓存）`;
+                            pushDetailLine(pDetail, `✅ ${displayName} 命中缓存，离线可用`);
+                        } else if (candidateCount > 1 && selectedUrl) {
+                            const latencyText = selectedLatency && selectedLatency !== '-1' ? `${selectedLatency}ms` : '未知';
+                            pText.textContent = `${displayName}（已择优 ${latencyText}）`;
+                            pushDetailLine(pDetail, `✅ ${displayName} 已择优成功，使用节点: ${selectedUrl}`);
+                        } else {
+                            pushDetailLine(pDetail, `✅ ${displayName} 缓存完成`);
+                        }
+                        const contentLength = response.headers.get('content-length');
+                        if (contentLength && contentLength !== '0') {
+                            const total = parseInt(contentLength, 10);
+                            let loaded = 0;
+                            const reader = response.body.getReader();
+                            while (true) {
+                                const {done, value} = await reader.read();
+                                if (done) break;
+                                if (value) {
+                                    loaded += value.length;
+                                    const progress = Math.min(100, Math.round((loaded / total) * 100));
+                                    pBar.style.width = progress + '%';
+                                }
+                            }
+                        } else {
+                            pBar.style.width = '100%';
+                        }
+                    } catch (e) {
+                        const reason = e && e.message ? e.message : String(e);
+                        failed.push({ item, name: displayName, reason });
+                        pushDetailLine(pDetail, `❌ ${displayName} 缓存异常: ${reason}`);
+                    }
+                }
+
+                if (failed.length === 0) {
+                    pContainer.style.display = 'none';
+                    pText.style.display = 'none';
+                    pHint.style.display = 'none';
+                    pDetail.style.display = 'none';
+                    pFailures.style.display = 'none';
+                    return true;
+                }
+
+                pFailures.innerHTML = '';
+                pFailures.style.display = 'block';
+                for (const f of failed) {
+                    const row = document.createElement('div');
+                    row.textContent = `• ${f.name}: ${f.reason}`;
+                    pFailures.appendChild(row);
+                }
+                pushDetailLine(pDetail, `⚠️ 第 ${attempt} 轮结束，仍有 ${failed.length} 个资源缓存失败`);
+                const retry = window.confirm(
+                    `有 ${failed.length} 个资源缓存失败。\n\n失败明细已列出。\n建议：检查网络、切换节点后重试。\n\n点击“确定”重试失败资源；点击“取消”强制进入预览。`
+                );
+                if (!retry) {
+                    pContainer.style.display = 'none';
+                    pText.style.display = 'none';
+                    pHint.style.display = 'none';
+                    pDetail.style.display = 'none';
+                    pFailures.style.display = 'none';
+                    return false;
+                }
+                pendingTasks = failed.map(e => e.item);
+                attempt++;
+            }
+            pContainer.style.display = 'none';
+            pText.style.display = 'none';
+            pHint.style.display = 'none';
+            pDetail.style.display = 'none';
+            pFailures.style.display = 'none';
+            return true;
+        }
+
+        async function init() {
+            if (window.__hasRuntimeError) {
+                console.warn("Skipping init because a runtime error was detected.");
+                return;
+            }
+
+            const container = document.getElementById('preview-container');
+            
+            try {
+                const preloadOk = await preloadResources();
+                if (!preloadOk) {
+                    console.warn("用户选择跳过部分缓存失败资源并强制进入预览");
+                }
+                
+                // Inject the user script now
+                document.getElementById('loading-msg').textContent = "正在加载预览...";
+                let scriptCode = document.getElementById('user-script-code').textContent;
+                
+                if (window.Babel) {
+                    document.getElementById('loading-msg').textContent = "正在编译脚本(兼容模式)...";
+                    try {
+                        scriptCode = Babel.transform(scriptCode, { presets: ['env'] }).code;
+                    } catch(e) {
+                        console.error("Babel 编译失败", e);
+                    }
+                }
+
+                const scriptEl = document.createElement('script');
+                scriptEl.id = 'user-script';
+                scriptEl.textContent = scriptCode;
+                document.head.appendChild(scriptEl);
+
+                if (typeof render !== 'function') {
+                    showError("未找到 render 函数", "请在脚本中定义 function render(fileName, fileExt, content) {...}");
+                    return;
+                }
+
+                console.log("开始渲染文件:", fileName);
+                
+                // Fetch content from server
+                console.log("正在加载文件内容...");
+                const response = await fetch('/raw');
+                if (!response.ok) throw new Error("加载文件失败: " + response.statusText);
+                const buffer = await response.arrayBuffer();
+                const content = new Uint8Array(buffer);
+                console.log("文件加载完成，大小:", content.length);
+                
+                let result = render(fileName, fileExt, content);
+                
+                if (result instanceof Promise) {
+                    console.log("render 返回 Promise, 等待解析...");
+                    result = await result;
+                }
+
+                if (result instanceof HTMLElement) {
+                    container.innerHTML = ''; 
+                    container.appendChild(result);
+                    console.log("渲染完成。");
+                } else {
+                    const type = result === null ? "null" : typeof result;
+                    showError("返回值类型错误", { message: "render 函数必须返回一个 DOM 元素 (HTMLElement)。\n实际返回类型: " + type + "\n实际返回值: " + String(result) });
+                    document.getElementById('console-toggle').style.display = 'flex';
+                }
+
+            } catch (e) {
+                console.error(e);
+                let msg = e.name + ": " + e.message;
+                let translated = translateError(msg);
+                
+                // Manually construct context if possible (harder here since we don't have lineno easily unless we parse stack)
+                // Stack trace parsing is unreliable across browsers.
+                // We will just show the message and stack.
+                
+                showError("渲染过程中发生异常", { 
+                    message: translated, 
+                    originalMessage: msg + "\n" + (e.stack || "") 
+                });
+                document.getElementById('console-toggle').style.display = 'flex';
+            }
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+    </script>
+</body>
+</html>

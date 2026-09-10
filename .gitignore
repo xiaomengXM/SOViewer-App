@@ -1,0 +1,22 @@
+# Gradle
+.gradle/
+build/
+app/build/
+local.properties
+*.iml
+.idea/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# 编译校验用存根，不参与真实构建
+.verify/
+
+# 签名
+*.jks
+*.keystore
+!debug.keystore
+
+# 系统
+.DS_Store
+Thumbs.db

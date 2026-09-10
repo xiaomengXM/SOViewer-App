@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SO文件预览器</string>
+    <string name="open_file">打开文件</string>
+    <string name="recent_files">最近文件</string>
+    <string name="settings">设置</string>
+    <string name="no_recent">暂无最近打开的文件</string>
+    <string name="empty_recent_hint">点击上方「打开文件」选择一个文件开始预览</string>
+</resources>
